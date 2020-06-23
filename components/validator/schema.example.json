@@ -1,0 +1,119 @@
+{
+    "description": "here are diferente json schema examples for each type of input for http endpoints",
+    "body": {
+        "name": "string",
+        "lastname": {
+            "required": false,
+            "type": "string"
+        },
+        "age": "number",
+        "birthDate": "date",
+        "##COMMENT##": "Date types have to be compatible with New Date(). Warning: Some strings and numbers might be compatible, returning non expected dates value",
+        "last3tutors": {
+            "type": "array",
+            "items": "string",
+            "minLength": 1,
+            "maxLength": 3
+        },
+        "last3grades": {
+            "type": "array",
+            "items": [
+                "string",
+                "number"
+            ],
+            "##COMMENT##": "Array of types declares multiples possible types. this mode is inclusive. types must be specified in string format",
+            "minLength": 1,
+            "maxLength": 3
+        },
+        "last3partnersGrades": {
+            "type": "array",
+            "items": {
+                "string": {
+                    "maxLength": 3
+                },
+                "number": {
+                    "min": 0,
+                    "max": 7
+                },
+                "##COMMENT##": "Object of types declares multiples exclusive types. this mode is exclusive. types must be specified in object format format. This way, items can be restricted with type"
+            },
+            "minLength": 1,
+            "maxLength": 3
+        },
+        "lastSchool": {
+            "type": "object",
+            "properties": {
+                "name": "string",
+                "address": {
+                    "type": "string",
+                    "required": false
+                }
+            }
+        },
+        "last3partners": {
+            "type": "array",
+            "items": {
+                "object": {
+                    "properties": {
+                        "name": "string",
+                        "lastname": {
+                            "required": false,
+                            "type": "string"
+                        },
+                        "age": "number"
+                    }
+                }
+            },
+            "minLength": 1,
+            "maxLength": 3
+        },
+        "graduated": "boolean"
+    },
+    "headers": {
+        "name": "string",
+        "lastname": {
+            "required": false,
+            "type": "string"
+        },
+        "birthDate": "date",
+        "age": "number",
+        "graduated": "boolean"
+    },
+    "query": {
+        "name": "string",
+        "lastname": {
+            "required": false,
+            "type": "string"
+        },
+        "age": "number",
+        "last3tutors": {
+            "type": "array",
+            "items": "string",
+            "minLength": 1,
+            "maxLength": 3,
+            "##COMMENT##": "Array can be declared the same way as body arrays, but parameter in query has to be compatible with decodeURIComponent(param) and JSON.parse(paramDecoded)"
+        },
+        "lastSchool": {
+            "type": "object",
+            "properties": {
+                "name": "string",
+                "address": {
+                    "type": "string",
+                    "required": false
+                }
+            },
+            "##COMMENT##": "Objects can be declared the same way as body objects, but parameter in query has to be compatible with decodeURIComponent(param) and JSON.parse(paramDecoded)"
+        },
+        "graduated": "boolean"
+    },
+    "parameters": {
+        "name": "string",
+        "lastname": {
+            "required": false,
+            "type": "string"
+        },
+        "birthDate": "date",
+        "age": "number",
+        "graduated": "boolean"
+    }
+}

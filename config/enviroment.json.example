@@ -1,0 +1,18 @@
+{
+    "env" : "enviroment tag string",
+    "db": {
+        "host": "db host url / ip",
+        "port": "db port",
+        "schema": "db schema",
+        "user": "db user",
+        "password": "db password"
+    },
+    "cognito" : {
+        "secretAccessKey": "cognito secretAccessKey",
+        "accessKeyId": "cognito accessKeyId",
+        "IdentityPoolId": "cognito IdentityPoolId",
+        "region": "cognito region",
+        "apiVersion": "2016-04-18"
+    },
+    "infoSecret" : "String to encrypt headers"
+}

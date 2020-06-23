@@ -1,0 +1,22 @@
+{
+    "server" : {
+        "port" : 2020,
+        "host" : "0.0.0.0"
+    },
+    "querys": {
+        "timeWindow" : ["2018.01.01"]
+    },
+    "infoSecret" : "NotSecret@ALL",
+    "permisions" : {
+        "estado": 1,
+        "tasafallas": 2,
+        "presupuestos": 0,
+        "preventivo": 3,
+        "gastos": 4,
+        "tiempos": 5,
+        "montos" : 6,
+        "aprobarPpto" : 7,
+        "SolicitarAprob": 8,
+        "Excel": 9
+    }
+}

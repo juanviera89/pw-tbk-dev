@@ -1,0 +1,32 @@
+{
+    "env": "development",
+    "db": {
+        "uri": "mongodb://localhost:27017",
+        "options": {
+            "bufferCommands": false,
+            "auth": {
+                "user": "paywashBackend",
+                "password": "piD60HjDbHPYTYym2oVQ"
+            },
+            "autoIndex" : false,
+            "dbName" : "paywash",
+            "poolSize": 10,
+            "socketTimeoutMS" : 28000,
+            "keepAlive": true, 
+            "keepAliveInitialDelay": 300000,
+            "useUnifiedTopology" : true ,
+            "useNewUrlParser": true
+        }
+    },
+    "hw" : {
+        "url" : ""
+    },
+    "cognito": {
+        "secretAccessKey": "1",
+        "accessKeyId": "1",
+        "IdentityPoolId": "us-east-1",
+        "region": "us-east-1",
+        "apiVersion": "2016-04-18"
+    },
+    "infoSecret": "6t1FntfHjA1igPTyQYfOYKXCp53QIb59"
+}

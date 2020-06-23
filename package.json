@@ -2,13 +2,35 @@
   "name": "node-http-server",
   "version": "1.0.0",
   "description": "Node.js example server starter project",
-  "main": "src/index.js",
+  "main": "index.js",
   "scripts": {
     "start": "nodemon src/index.js"
   },
-  "dependencies": {},
+  "dependencies": {
+    "aws-sdk": "^2.691.0",
+    "axios": "^0.19.2",
+    "config": "^3.3.1",
+    "cryptr": "^6.0.2",
+    "express": "^4.17.1",
+    "helmet": "^3.22.0",
+    "jsonwebtoken": "^8.5.1",
+    "mongoose": "^5.9.18",
+    "morgan": "^1.10.0",
+    "rfr": "^1.2.3",
+    "transbank-sdk": "^1.0.2",
+    "webpay-nodejs": "^1.4.0"
+  },
   "devDependencies": {
+    "chai": "^4.2.0",
+    "chai-http": "^4.3.0",
+    "dotenv": "^8.2.0",
+    "errorhandler": "^1.5.1",
+    "mocha": "^8.0.1",
     "nodemon": "1.18.4"
   },
-  "keywords": []
+  "keywords": [],
+  "mocha": {
+    "spec": "*.test.js",
+    "recursive": true
+  }
 }

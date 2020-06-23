@@ -1,0 +1,70 @@
+{
+    "No_Credentials_Provided": {
+        "name": "No_Credentials_Provided",
+        "code": "AUT001",
+        "message": "No se encontraron las credenciales de usuario en los headers.",
+        "help": "You should provide an username and userkey, that match with AWS Cognito user pool, in the http request headers."
+    },
+
+      
+    "User_Not_Found": {
+        "name": "User_Not_Found",
+        "code": "DAT000",
+        "message": "No se ha encontrado datos del usuario en la base de datos.",
+        "help": "There isn't information, permissions or attachment to a company, for this username in the database."
+    },
+
+
+    "Server_Error": {
+        "name": "Server_Error",
+        "code": "SER000",
+        "message": "Hubo un 'error' en el servidor.",
+        "help": "For details, look into the error property."
+    },
+
+
+    "No_Route_Match": {
+        "name": "No_Route_Match",
+        "code": "REQ000",
+        "message": "La ruta no coincide con ningún endpoint.",
+        "help": "End of the road reached. Check the path of the endpoint, and make sure it is correctly spelled."
+    },
+    "No_Query_Provide": {
+        "name": "No_Query_Provide",
+        "code": "REQ001",
+        "message": "No se ha proporcionado ninguna query en la ruta.",
+        "help": "The path may be incomplete or missformed. Check the path, and make sure that it's formed this way: '<baseurl>/service/<indicator>/<query>'."
+    },
+    "No_Query_Match": {
+        "name": "No_Query_Match",
+        "code": "REQ002",
+        "message": "La query solicitada no existe.",
+        "help": "For this path format: '<baseurl>/service/<indicator>/<query>', this query doesn't exist in this indicator. Make sure these are the query and the indicator wich you want to request, and that they are correctly spelled."
+    },
+    "Bad_Filters": {
+        "name": "Bad_Filters",
+        "code": "REQ301",
+        "message": "Error al leer los filtros.",
+        "help": "Check the format of the filters. Filters must by passed as an object with arrays of strings in his properties. The acepted names for the properties are: 'Region', 'Local', 'Marca', 'Solucion', 'Equipo' and 'Llamada', and values are given by selecting company. Ex: {'Marca':['Marca_1','Marca_2'],'Local':['Local_1','Local_2','Local_3']}."
+    },
+    "Bad_Username": {
+        "name": "Bad_Username",
+        "code": "REQ302",
+        "message": "Error al leer el username.",
+        "help": "The request must have a header 'username' with the username of the user, It must be string with length greater than 0."
+    },
+
+
+    "No_Permission": {
+        "name": "No_Permission",
+        "code": "PER000",
+        "message": "El usuario no posee los permisos para solicitar este recurso.",
+        "help": "This user doesn't have the the permission to show this resource."
+    },
+    "No_Excel_Permission": {
+        "name": "No_Excel_Permission",
+        "code": "PER001",
+        "message": "El usuario no posee los permisos para solicitar este recurso.",
+        "help": "This user doesn't have the the Excel permission or the permission to show the indicator that the excel points."
+    }
+}
