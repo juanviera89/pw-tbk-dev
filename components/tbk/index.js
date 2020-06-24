@@ -10,10 +10,15 @@ const oId = require("mongoose").Types.ObjectId;
 const Transbank = require("transbank-sdk");
 
 //const webpay = new Transbank.Webpay(config.get("transbank.webpay.config"));
+const wpconfig = new Transbank.Configuration();
+
+wpconfig.withCommerceCode(config.get('transbank.webpay.config.commerceCode'))
+wpconfig.withPrivateCert(config.get('transbank.webpay.config.privateCert'))
+wpconfig.withPublicCert(config.get('transbank.webpay.config.publicCert'))
 
 const initWP = async (buyOrder, sessionId, amount) => {
   const transaction = new Transbank.Webpay(
-    Transbank.Configuration.forTestingWebpayPlusNormal()
+    wpconfig
   ).getNormalTransaction();
   const returnUrl = config.get("transbank.webpay.returnUrl");
   const finalUrl = config.get("transbank.webpay.finalUrl");
