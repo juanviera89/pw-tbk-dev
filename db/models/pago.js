@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 // find({"tbk.pagoExito" : true}) to find succeded payments
 const pago = new mongoose.Schema({
     oc : { type: String, required: true },
+    sessionId : String,
     username: { type: String, required: true },
     entorno: { type: String, default: 'dev' }, //desarrollo -produccion
     activation: {
@@ -12,13 +13,24 @@ const pago = new mongoose.Schema({
     },
     type: String,
     amount: Number,
+    reversals: {
+        type: [{
+            amount : Number,
+            date : Date,
+            comments : String,
+            officer : String //TODO : pending payments should query for reversals with length 0 
+        }],
+        default : []
+    },
     equipos: {
         type: [{
             serial: String,
             price: { type: Number, required: true },
             discount: { amount : {type: Number, default: 0}, id : String },
             activated: { type: Boolean, default: false },
-            date: Date
+            sucursal: string,
+            date: Date,
+            eqdata : String //mqtt data response on activation
         }],
         required: true
     },

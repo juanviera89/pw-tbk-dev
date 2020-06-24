@@ -5,6 +5,7 @@ const oneclick = new mongoose.Schema({
     createdAt : {type : Date, default : Date.now},
     registered : {type : Boolean, default : false},
     inscrptionResult : mongoose.Schema.Types.Mixed,
+    token : String
 })
 
 module.exports = mongoose.model('oneclick', oneclick);
