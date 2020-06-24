@@ -8,12 +8,13 @@ const errors = require("../../utils/errordictionary.json");
 const validator = require("../validator");
 const oId = require("mongoose").Types.ObjectId;
 const Transbank = require("transbank-sdk");
-const wpconfig = new Transbank.c();
 
-const webpay = new Transbank.Webpay(config.get("transbank.webpay.config"));
+//const webpay = new Transbank.Webpay(config.get("transbank.webpay.config"));
 
 const initWP = async (buyOrder, sessionId, amount) => {
-  const transaction = webpay.getNormalTransaction();
+  const transaction = new Transbank.Webpay(
+    Transbank.Configuration.forTestingWebpayPlusNormal()
+  ).getNormalTransaction();
   const returnUrl = config.get("transbank.webpay.returnUrl");
   const finalUrl = config.get("transbank.webpay.finalUrl");
   const tbkResult = await transaction.initTransaction(
