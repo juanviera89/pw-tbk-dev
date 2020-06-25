@@ -464,6 +464,26 @@ const ocAuthorize = async (req, res, next) => { // Realiza pago OneClick
   }
 };
 
+const logerror = async errObj => {
+  const err = {
+    transactionId: errObj.transactionId,
+    service: errObj.service,
+    type: "error",
+    message: errObj.message,
+    comment:
+      (errObj.error && errObj.error.message ? errObj.error.message : "") +
+      "#" +
+      JSON.stringify(
+        errObj.error && errObj.error.stack ? errObj.error.stack : ""
+      ),
+    origin: errObj.origin
+  };
+  console.log(err);
+
+  const log = new dblog(err);
+  await log.save();
+};
+
 module.exports = {
   initWP,
   resultWP,

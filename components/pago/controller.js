@@ -1,16 +1,16 @@
-const rfr = require('rfr');
-const dblog = rfr('db/models/log.js');
-const code = rfr('db/models/code.js');
-const equipo = rfr('db/models/equipo.js');
-const sucursal = rfr('db/models/sucursal.js');
-const concesionario = rfr('db/models/concesionario.js');
-const pago = rfr('db/models/pago.js');
-const descuento = rfr('db/models/descuento.js');
-const cognito = require('../cognito');
-const config = require('config');
-const errors = require('../../utils/errordictionary.json');
-const oId = require('mongoose').Types.ObjectId
-const utils = rfr('utils')
+const rfr = require("rfr");
+const dblog = rfr("db/models/log.js");
+const code = rfr("db/models/code.js");
+const equipo = rfr("db/models/equipo.js");
+const sucursal = rfr("db/models/sucursal.js");
+const concesionario = rfr("db/models/concesionario.js");
+const pago = rfr("db/models/pago.js");
+const descuento = rfr("db/models/descuento.js");
+const cognito = require("../cognito");
+const config = require("config");
+const errors = require("../../utils/errordictionary.json");
+const oId = require("mongoose").Types.ObjectId;
+const utils = rfr("utils");
 
 const list = async (req, res, next) => {
     try {
@@ -59,14 +59,14 @@ const startPayment = async (req, res, next) => { //Solicita pago
       for (const eq of equipos) {
         const foundEq = await equipo.findOne({ serial: eq });
         if (!foundEq) return res.status(404).send({ message: `Can't process payment. Equipment not found`, oc: null });
-        const foundSucursal = await sucursal.findOne({ code: foundEquipo.sucursal }).exec();
+        const foundSucursal = await sucursal.findOne({ code: foundEq.sucursal }).exec();
         const foundDescuentos = await descuento.find({ sucursales: foundSucursal.code, iDate: { $lt: Date.now() }, eDate: { $gt: Date.now() }, active: true }, { _id: 0 }).exec()
         const descuentoEqs = foundDescuentos.filter(desc => {
           if (!desc.schedule) return true;
           return utils.testDate(desc.schedule)
         }).reduce((descFinal, desc) => {
           if (!descFinal) return desc;
-          if (desc.descuento[foundEquipo.type] > descFinal.descuento[foundEquipo.type]) return desc
+          if (desc.descuento[foundEq.type] > descFinal.descuento[foundEq.type]) return desc
           return descFinal
         }, null);
         if (!foundSucursal.precio[foundEq.type]) return res.status(500).send({ message: 'error with equipment price', oc: null })

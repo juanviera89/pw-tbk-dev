@@ -2,9 +2,9 @@ const express = require("express");
 const rfr = require("rfr");
 const router = express.Router();
 const validate = rfr("/components/validator/middleware").wrapper;
-const initWP = rfr("/components/tbk").initWP;
-const resultWP = rfr("/components/tbk").resultWP;
-const finishtWP = rfr("/components/tbk").finishtWP;
+const initWP = rfr("/components/tbk/controller").initWP;
+const resultWP = rfr("/components/tbk/controller").resultWP;
+const finishtWP = rfr("/components/tbk/controller").finishtWP;
 const userInfo = rfr("/components/user/userMiddleware").userInfo;
 
 const methods = {

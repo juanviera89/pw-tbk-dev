@@ -2,9 +2,9 @@ const express = require("express");
 const rfr = require("rfr");
 const router = express.Router();
 const validate = rfr("/components/validator/middleware").wrapper;
-const ocRegister = rfr("/components/tbk").ocRegister;
-const ocRegisterConfirmation = rfr("/components/tbk").ocRegisterConfirmation;
-const ocAuthorize = rfr("/components/tbk").ocAuthorize;
+const ocRegister = rfr("/components/tbk/controller").ocRegister;
+const ocRegisterConfirmation = rfr("/components/tbk/controller").ocRegisterConfirmation;
+const ocAuthorize = rfr("/components/tbk/controller").ocAuthorize;
 const userInfo = rfr("/components/user/userMiddleware").userInfo;
 
 const methods = {
@@ -40,7 +40,7 @@ const methods = {
     }
 };
 
-router.get("/init", validate(methods.GET), userInfo, ocRegister);
-router.post("/result", validate(methods.GET), ocRegisterConfirmation);
-router.post("/finish", validate(methods.GET), ocAuthorize);
+router.get("/init", validate(methods.register.GET), userInfo, ocRegister);
+router.post("/result", validate(methods.result.POST), ocRegisterConfirmation);
+router.post("/finish", validate(methods.auth.GET), ocAuthorize);
 module.exports = { methods, routes: router };
