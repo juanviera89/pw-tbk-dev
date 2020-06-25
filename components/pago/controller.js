@@ -82,7 +82,11 @@ const startPayment = async (req, res, next) => { //Solicita pago
         eqs.push(pagoEq);
       }
       if (!eqs.length) return res.status(400).send({ message: `Can't process payment. No equipments`, oc: null });
-      const price = eqs.reduce((amount, eq, i) => amount + eq.price + eq.discount ? eq.discount.amount : 0, 0);
+      const price = eqs.reduce((amount, eq, i) => {
+        const price = eq.price;
+        const discount = eq.discount ? eq.discount.amount : 0
+        return amount + price - discount
+        }, 0);
       const oc = `pwoc${Date.now().toString(24)}`
       const sid = `pwsid${Date.now().toString(24)}`
       const doc = {
@@ -94,6 +98,7 @@ const startPayment = async (req, res, next) => { //Solicita pago
         amount: price,
         equipos: eqs
       }
+      await (new pago(doc)).save()
       return res.status(200).send({ oc, tipo })
   
   

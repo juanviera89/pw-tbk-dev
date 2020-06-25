@@ -28,7 +28,7 @@ const pago = new mongoose.Schema({
             price: { type: Number, required: true },
             discount: { amount : {type: Number, default: 0}, id : String },
             activated: { type: Boolean, default: false },
-            sucursal: string,
+            sucursal: String,
             date: Date,
             eqdata : String //mqtt data response on activation
         }],
