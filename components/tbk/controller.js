@@ -13,6 +13,7 @@ const errors = require("../../utils/errordictionary.json");
 const validator = require("../validator");
 const oId = require("mongoose").Types.ObjectId;
 const Transbank = require("transbank-sdk");
+const { activateList, activationProcess } = require('../equipo/controller');
 
 //const webpay = new Transbank.Webpay(config.get("transbank.webpay.config"));
 const wpconfig = new Transbank.Configuration();
@@ -36,72 +37,6 @@ const wpNullifyTransaction = new Transbank.Webpay(
 const oneclickTransaction = new Transbank.Webpay(
   occonfig
 ).getOneClickTransaction();
-
-const startPayment = async (req, res, next) => {
-  try {
-    const { equipos, tipo } = req.validInputs.body;
-    if (!['webpay', 'oneclick'].includes(tipo)) return res.status(400).send({ message: 'Payment type not supported', oc: null })
-    const userAttr = req.userInfo;
-    if (tipo == 'oneclick') {
-      const userOneclick = await oneclick.findOne({ username: userAttr.username, registered: true }).exec();
-      if (!userOneclick) return res.status(400).send({ message: 'Method not available', needRegistration: true, oc: null })
-    }
-    const eqs = [];
-    for (const eq of equipos) {
-      const foundEq = await equipo.findOne({ serial: eq });
-      if (!foundEq) return res.status(404).send({ message: `Can't process payment. Equipment not found`, oc: null });
-      const foundSucursal = await sucursal.findOne({ code: foundEquipo.sucursal }).exec();
-      const foundDescuentos = await descuento.find({ sucursales: foundSucursal.code, iDate: { $lt: Date.now() }, eDate: { $gt: Date.now() }, active: true }, { _id: 0 }).exec()
-      const descuentoEqs = foundDescuentos.filter(desc => {
-        if (!desc.schedule) return true;
-        return utils.testDate(desc.schedule)
-      }).reduce((descFinal, desc) => {
-        if (!descFinal) return desc;
-        if (desc.descuento[foundEquipo.type] > descFinal.descuento[foundEquipo.type]) return desc
-        return descFinal
-      }, null);
-      if (!foundSucursal.precio[foundEq.type]) return res.status(500).send({ message: 'error with equipment price', oc: null })
-      const pagoEq = {
-        serial: foundEq.serial,
-        price: foundSucursal.precio[foundEq.type],
-        sucursal: foundSucursal.code
-      }
-      if (descuentoEqs) pagoEq['discount'] = {
-        amount: descuentoEqs.descuento[foundEq.type],
-        id: descuentoEqs.did
-      }
-      eqs.push(pagoEq);
-    }
-    if (!eqs.length) return res.status(400).send({ message: `Can't process payment. No equipments`, oc: null });
-    const price = eqs.reduce((amount, eq, i) => amount + eq.price + eq.discount ? eq.discount.amount : 0, 0);
-    const oc = `pwoc${Date.now().toString(24)}`
-    const sid = `pwsid${Date.now().toString(24)}`
-    const doc = {
-      oc,
-      sessionId: sid,
-      username: userAttr.username,
-      entorno: process.env.NODE_ENV,
-      type: tipo,
-      amount: price,
-      equipos: eqs
-    }
-    return res.status(200).send({ oc, tipo })
-
-
-  } catch (error) {
-    const err = {
-      errId: 500,
-      transactionId: req.transactionId,
-      service: 'equipo info',
-      type: 'error',
-      message: 'Internal server error', // TODO: Use dictionary
-      origin: JSON.stringify(error),
-    }
-    err.error = error
-    next(err);
-  }
-
-}
 
 const webpayToken = async (buyOrder, sessionId, amount) => {
   const returnUrl = config.get("transbank.webpay.returnUrl");
@@ -127,6 +62,7 @@ const badPaymentInit = `<!DOCTYPE html>
 <h2>Error iniciando pago</h2>
 
 <div id="action" hidden>error</div>
+<div id="message" hidden>#message</div>
 
 </body>
 </html>`;
@@ -137,6 +73,7 @@ const paymentNotFound = `<!DOCTYPE html>
 <h2>Error de pago. Orden no encontrada</h2>
 
 <div id="action" hidden>error</div>
+<div id="message" hidden>#message</div>
 
 </body>
 </html>`
@@ -163,6 +100,7 @@ const badPaymentProcess = `<!DOCTYPE html>
 <h2>Error procesando pago</h2>
 
 <div id="action" hidden>error</div>
+<div id="message" hidden>#message</div>
 
 </body>
 </html>`;
@@ -173,6 +111,7 @@ const errorPaymentProcess = `<!DOCTYPE html>
 <h2>Error procesando pago</h2>
 
 <div id="action" hidden>#error</div>
+<div id="message" hidden>#message</div>
 
 </body>
 </html>`;
@@ -192,7 +131,6 @@ const finalPayment = `<!DOCTYPE html>
 document.getElementById("tbkform").submit();
 </script> 
 </html>`
-
 const abortPaymentProcess = `<!DOCTYPE html>
 <html>
 <body>
@@ -200,6 +138,7 @@ const abortPaymentProcess = `<!DOCTYPE html>
 <h2>Pago abortado</h2>
 
 <div id="action" hidden>Abort</div>
+<div id="message" hidden>#message</div>
 
 </body>
 </html>`;
@@ -210,11 +149,11 @@ const paymentProcessDone = `<!DOCTYPE html>
 <h2>Pago completado</h2>
 <p>Sus equipos serán habilitados en breve</p>
 
-<div id="action" hidden>done</div>
+<div id="action" hidden>success</div>
+<div id="message" hidden>#message</div>
 
 </body>
 </html>`;
-
 const oneclickRegisterInit = `<!DOCTYPE html>
 <html>
 <body>
@@ -230,9 +169,7 @@ const oneclickRegisterInit = `<!DOCTYPE html>
 <script>
 document.getElementById("tbkform").submit();
 </script> 
-</html>`
-
-
+</html>`;
 const fatalError = `<!DOCTYPE html>
 <html>
 <body>
@@ -240,6 +177,7 @@ const fatalError = `<!DOCTYPE html>
 <h3>No pudimos procesar la transaccion, le pedimos disculpas por los inconvenientes </h3>
 
 <div id="action" hidden>fatal</div>
+<div id="message" hidden>#message</div>
 
 </body>
 </html>`
@@ -249,6 +187,7 @@ const oneclickSuccess = `<!DOCTYPE html>
 <h1>Usuario registrado</h1>
 
 <div id="action" hidden>success</div>
+<div id="message" hidden>#message</div>
 
 </body>
 </html>`
@@ -258,6 +197,7 @@ const oneclickDuplicated = `<!DOCTYPE html>
 <h1>Usuario ya esta registrado</h1>
 
 <div id="action" hidden>duplicated</div>
+<div id="message" hidden>#message</div>
 
 </body>
 </html>`
@@ -268,17 +208,41 @@ const oneclickFailed = `<!DOCTYPE html>
 <h3>No pudimos procesar la transaccion, le pedimos disculpas por los inconvenientes </h3>
 
 <div id="action" hidden>error</div>
+<div id="message" hidden>#message</div>
+
+</body>
+</html>`
+const oneclickAuthorized = `<!DOCTYPE html>
+<html>
+<body>
+<h1>Pago autorizado</h1>
+
+<div id="action" hidden>success</div>
+<div id="message" hidden>#message</div>
+
+</body>
+</html>`
+const oneclickError = `<!DOCTYPE html>
+<html>
+<body>
+<h1>Error en transaccion</h1>
+<h3>No pudimos procesar la transaccion, le pedimos disculpas por los inconvenientes </h3>
+
+<div id="action" hidden>#error</div>
+<div id="message" hidden>#message</div>
 
 </body>
 </html>`
 
-const initWP = async (req, res, next) => {
+
+
+const initWP = async (req, res, next) => { //Inicia pago WebPay
   try {
-    const { oc } = req.validInputs.body;
+    const { oc } = req.validInputs.query;
     const userAttr = req.userInfo;
-    const buyOrder = await pago.findOne({ oc, username: userAttr.username }).exec()
-    if (!buyOrder) return res.status(404).send(paymentNotFound)
-    if (buyOrder.tbk && buyOrder.tbk.init) return res.status(400).send(badPaymentInit);
+    const buyOrder = await pago.findOne({ oc, username: userAttr.username, type: 'webpay' }).exec()
+    if (!buyOrder) return res.status(404).send(paymentNotFound.replace('#message', 'No existe pago asociado'))
+    if (buyOrder.tbk && buyOrder.tbk.init) return res.status(400).send(badPaymentInit.replace('#message', 'No existe pago asociado'));
     const token = await webpayToken(buyOrder.oc, buyOrder.sessionId, buyOrder.amount);
     await pago.updateOne({ oc, username: userAttr.username }, { $set: { "tbk.init": token } }).exec();
     const body = paymentInit.replace('#tokenUrl', token.url).replace('#tokenUrl', token.token);
@@ -293,24 +257,24 @@ const initWP = async (req, res, next) => {
       origin: JSON.stringify(error)
     };
     err.error = error;
-    //TODO LOG ERROR
-    return res.status(500).send(fatalError);
+    logerror(err)
+    return res.status(500).send(fatalError.replace('#message', 'Ocurrió un error inesperado'));
     //next(err);
   }
 };
 
 
-const resultWP = async (req, res, next) => {
+const resultWP = async (req, res, next) => { //Resuelve pago webpay
   try {
     //const userAttr = req.userInfo;
     const token = req.body.token_ws;
-    const buyOrder = await pago.findOne({ "tbk.init.token" : token }).exec()
+    const buyOrder = await pago.findOne({ "tbk.init.token": token }).exec()
     const response = await webpayResult(token);
     const oc = response.buyOrder;
     const sid = response.sessionId;
     if (!oc || !sid) {
-      res.status(500).send(badPaymentProcess);
-      await pago.updateOne({ "tbk.init.token" : token }, { $set: { "tbk.result": response, "tbk.error": true, "tbk.exito": false } }).exec()
+      res.status(500).send(badPaymentProcess.replace('#message', 'Ocurrio un error en la transacción'));
+      await pago.updateOne({ "tbk.init.token": token }, { $set: { "tbk.result": response, "tbk.error": true, "tbk.exito": false } }).exec()
       return
     }
     const output = response.detailOutput[0];
@@ -318,11 +282,11 @@ const resultWP = async (req, res, next) => {
     if (!buyOrder) { //Como no se pudo registrar el pago para usarse en activaciones, se devuelve el dinero al cliente
       const nulled = await wpNullifyTransaction.nullify(output.authorizationCode, output.amount, response.buyOrder, output.amount);
       //TODO log nullify action
-      return res.status(404).send(paymentNotFound)
+      return res.status(404).send(paymentNotFound.replace('#message', 'Pago no asociado a orden de compra, el monto será devuelto en breve'))
     }
     if (output.responseCode != 0) {
       // TODO: usar diccionario en front para mostrar error https://www.transbankdevelopers.cl/referencia/webpay?l=java#confirmar-una-transaccion-webpay-plus-normal
-      const body = errorPaymentProcess.replace('#error', `${response.VCI}#${output.responseCode}`)
+      const body = errorPaymentProcess.replace('#error', `${response.VCI}#${output.responseCode}`).replace('#message', 'Error en la transaccion')
       res.status(400).send(body);
       await pago.updateOne({ oc, username: buyOrder.username }, { $set: { "tbk.result": response, "tbk.exito": false } }).exec()
       //Log error
@@ -342,26 +306,30 @@ const resultWP = async (req, res, next) => {
       origin: JSON.stringify(error)
     };
     err.error = error;
-    //TODO LOG ERROR
-    return res.status(500).send(fatalError);
+    logerror(err)
+    return res.status(500).send(fatalError.replace('#message', 'Ocurrió un error inesperado'));
     //next(err);
   }
 };
 
-const finishtWP = async (req, res, next) => {
+const finishtWP = async (req, res, next) => { //finaliza pago webpay
   try {
     const token = req.body.token_ws;
     if (typeof req.body.TBK_TOKEN !== "undefined" || !token) {
       //TODO log abortion action
-      return res.status(400).send(abortPaymentProcess)
+      return res.status(400).send(abortPaymentProcess.replace('#message', 'Ha abortado la operación, deberá iniciar de nuevo para habilitar los equipos'))
     }
     const buyOrder = await pago.findOne({ "tbk.token": token, "tbk.exito": true }).exec();
     if (!buyOrder) {
       //TODO log payment finished on no token register found
-      return res.status(400).send(abortPaymentProcess) //Migth be still able to activate eqs
+      return res.status(400).send(abortPaymentProcess.replace('#message', 'Error con la transacción. Por favor revise su historial de pagos para validar que fue efectuado. Si existe algun problema con su pago, contacte al servicio de soporte')) //Migth be still able to activate eqs
     }
-    //TODO Call activation process for eqs in buyOrder
-    return res.status(200).send(paymentProcessDone);
+    try {
+      activateList(buyOrder.equipos.map(eq => eq.serial), buyOrder.username);
+    } catch (error) {
+      //TODO: log activation error
+    }
+    return res.status(200).send(paymentProcessDone.replace('#message', 'Pago realizado con éxito, el o los equipos se habilitarán en breve'));
   } catch (error) {
     const err = {
       errId: 500,
@@ -372,24 +340,24 @@ const finishtWP = async (req, res, next) => {
       origin: JSON.stringify(error)
     };
     err.error = error;
-    //TODO LOG ERROR
-    return res.status(500).send(fatalError);
+    logerror(err)
+    return res.status(500).send(fatalError.replace('#message', 'Ocurrió un error inesperado'));
     //next(err);
   }
 };
 
-const ocRegister = async (req, res, next) => {
+const ocRegister = async (req, res, next) => { // Inicia registro oneClick
   try {
     const userAttr = req.userInfo;
-    const ocregistration = await oneclick.findOne({username: userAttr.username,registered:true});
-    if(ocregistration) {
+    const ocregistration = await oneclick.findOne({ username: userAttr.username, registered: true });
+    if (ocregistration) {
       //TODO: log duplicaed oneclick registration intent
-      return res.status(200).send(oneclickDuplicated);
+      return res.status(200).send(oneclickDuplicated.replace('#message', 'Usted ya posee tarjeta registrada en OneClick'));
     }
     const token = await oneclickTransaction.initInscription(userAttr.username, userAttr.email, config.get('transbank.oneclick.config.final'))
     const oc = new oneclick({
       username: userAttr.username,
-      token : token.token
+      token: token.token
     })
     await oc.save();
     const body = oneclickRegisterInit.replace('#redirectUrl', token.urlWebpay).replace('#token', token.token);
@@ -404,32 +372,35 @@ const ocRegister = async (req, res, next) => {
       origin: JSON.stringify(error)
     };
     err.error = error;
-    //TODO LOG ERROR
-    return res.status(500).send(fatalError);
+    logerror(err)
+    return res.status(500).send(fatalError.replace('#message', 'Ocurrió un error inesperado'));
     //next(err);
   }
 };
 
 
 
-const ocRegisterConfirmation = async (req, res, next) => {
+const ocRegisterConfirmation = async (req, res, next) => { //Resuelve registro oneclick
   try {
     const token = req.body.TBK_TOKEN;
-    const response = oneclickTransaction.finishInscription(token); //TODO Debug response, properties must be in root
+    const response = await oneclickTransaction.finishInscription(token); //TODO Debug response, properties must be in root
+    console.log('===================ocRegisterConfirmation=================');
+    console.log(response);
+    console.log('====================================');
     if (response.responseCode != 0) {
       //TODO log process failure
-      res.status(400).send(oneclickFailed)
+      res.status(400).send(oneclickFailed.replace('#message', 'Ha fallado la inscripción en Oneclick'))
 
       await oneclick.updateOne({ token }, { $set: { registered: false, inscrptionResult: response } }).exec();
       return
     }
-    const ocReg = await oneclick.findOne({token});
-    if(!ocReg){
+    const ocReg = await oneclick.findOne({ token });
+    if (!ocReg) {
       //TODO LOG registration completion on invalid user registration
-    return res.status(200).send(oneclickFailed)
+      return res.status(500).send(oneclickFailed.replace('#message', 'No existe transacción asociada en nuestros registros OneClick'))
     }
     await oneclick.updateOne({ token }, { $set: { registered: true, inscrptionResult: response } }).exec();
-    res.status(200).send(oneclickSuccess)
+    return res.status(200).send(oneclickSuccess.replace('#message', 'Usuario registrado con exito'))
   } catch (error) {
     const err = {
       errId: 500,
@@ -440,16 +411,64 @@ const ocRegisterConfirmation = async (req, res, next) => {
       origin: JSON.stringify(error)
     };
     err.error = error;
-    //TODO LOG ERROR
-    return res.status(500).send(fatalError);
+    logerror(err)
+    return res.status(500).send(fatalError.replace('#message', 'Ocurrió un error inesperado'));
+    //next(err);
+  }
+};
+
+//TODO Oneclick unregister
+
+const ocAuthorize = async (req, res, next) => { // Realiza pago OneClick
+  try {
+    const { oc } = req.validInputs.query;
+    const userAttr = req.userInfo;
+    const buyOrder = await pago.findOne({ oc, username: userAttr.username, type: 'oneclick' }).exec()
+    if (!buyOrder) return res.status(404).send(oneclickError.replace('#error', 'error').replace('#message', 'No se pudo procesar la compra'))//{ paid: false, message: 'Buy order not found' })
+    if (buyOrder.tbk && buyOrder.tbk.init) return res.status(400).send(oneclickError.replace('#error', 'error').replace('#message', 'No se puede procesar la compra'))//{ paid: false, message: 'Unable to process buy order' });
+    const userOneclick = await oneclick.findOne({ username: userAttr.username, registered: true }).exec();
+    if (!userOneclick) return res.status(400).send(oneclickError.replace('#error', 'error').replace('#message', 'Usuario sin registros en OneClick'))//{ paid: false, message: 'User not authorized', needRegistration: true })
+    if ((userOneclick.inscrptionResult && (!userOneclick.inscrptionResult.tbkUser)) || !userOneclick.inscrptionResult) {
+      await pago.updateOne({ '_id': oId(userOneclick) }, { $set: { registered: false } }).exec()
+      return res.status(500).send(oneclickError.replace('#error', 'error').replace('#message', 'Error en el registro de oneclick, no se puede autorizar la compra'))//{ paid: false, message: 'Error on Oneclick registration' })
+    }
+    const response = await oneclickTransaction.authorize(buyOrder, userOneclick.inscrptionResult.tbkUser, userAttr.username, buyOrder.amount); //TODO Debug response, properties must be in root
+    if (response.responseCode != 0) {
+      //TODO log process failure
+      res.status(400).send(oneclickError.replace('#error', response.responseCode).replace('#message', 'Ha ocurrido un error'))//{ paid: false, message: 'Error on Oneclick registration', responseCode: response.responseCode })
+      //TODO usar diccionario en front para emitir error a usuario https://www.transbankdevelopers.cl/referencia/webpay#autorizar-un-pago-con-oneclick
+      await pago.updateOne({ oc, username: buyOrder.username }, { $set: { "tbk.result": response, "tbk.exito": false } }).exec()
+      return
+    }
+    await pago.updateOne({ oc, username: buyOrder.username }, { $set: { "tbk.result": response, "tbk.exito": false } }).exec()
+
+    try {
+      activateList(buyOrder.equipos.map(eq => eq.serial), buyOrder.username);
+    } catch (error) {
+      //TODO: log activation error
+    }
+    return res.status(200).send(oneclickAuthorized.replace('#message', 'Pago autorizado. El o los equipos serán habilidatos en breve'))//{ paid: true })
+  } catch (error) {
+    const err = {
+      errId: 500,
+      transactionId: req.transactionId,
+      service: "modifyInfo",
+      type: "error",
+      message: "Internal server error", // TODO: Use dictionary
+      origin: JSON.stringify(error)
+    };
+    err.error = error;
+    logerror(err)
+    return res.status(500).send(fatalError.replace('#message', 'Ocurrió un error inesperado'));
     //next(err);
   }
 };
 
 module.exports = {
   initWP,
-  pagar,
-  startPayment,
   resultWP,
-  finishtWP
+  finishtWP,
+  ocRegister,
+  ocRegisterConfirmation,
+  ocAuthorize
 };

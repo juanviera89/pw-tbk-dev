@@ -31,7 +31,7 @@ const info = async (req, res, next) => {
         const hace2min = new Date()
         hace2min.setMinutes(hace2min.getMinutes() - 2);
         const activo = new Date(foundEquipo.ultimaVez.fecha) > hace2min;
-        if(!(activo && foundEquipo.active)) return res.status(409).send({ message: 'Equipo no disponible o fuera de linea', equipo : {...foundEquipo['_doc'], active:false}})
+        if (!(activo && foundEquipo.active)) return res.status(409).send({ message: 'Equipo no disponible o fuera de linea', equipo: { ...foundEquipo['_doc'], active: false } })
         const foundSucursal = await sucursal.findOne({ code: foundEquipo.sucursal }, { _id: 0 }).exec();
         if (!foundSucursal) return res.status(404).send({ equipo: null, message: 'Equipo no encontrado' })
         const foundConcesionario = await concesionario.findOne({ code: foundSucursal.consecionario }, { _id: 0 }).exec();
@@ -64,7 +64,7 @@ const info = async (req, res, next) => {
                 precio: foundSucursal.precio[foundEquipo.type]
             },
             descuento: foundDescuentos ? foundDescuentos['_doc'] : null,
-            pagosPendientes : pagosPendientes.map( p =>( { oc : p.oc}))
+            pagosPendientes: pagosPendientes.map(p => ({ oc: p.oc }))
         }
         return res.status(200).send(body)
 
@@ -82,32 +82,52 @@ const info = async (req, res, next) => {
     }
 }
 
-const activar = async (req, res, next) => {
+const activationProcess = async (serial, username) => {
     try {
-        const { serial } = req.validInputs.body;
-        const userAttr = req.userInfo;
         const query = { serial }
         const foundEquipo = await equipo.findOne(query).exec();
-        if (!foundEquipo) return res.status(404).send({ activated: false,equipo: null, message: 'Equipo no encontrado' })
+        if (!foundEquipo) return { status: 404, activated: false, equipo: null, message: 'Equipo no encontrado' }//res.status(404).send({ activated: false,equipo: null, message: 'Equipo no encontrado' })
         const hace2min = new Date()
         hace2min.setMinutes(hace2min.getMinutes() - 2);
         const activo = new Date(foundEquipo.ultimaVez.fecha) > hace2min;
-        if(!(activo && foundEquipo.active)) return res.status(409).send({activated: false, message: 'Equipo no disponible o fuera de linea', equipo :  {...foundEquipo['_doc'], active:false}})
-        const pagosPendientes = await pago.find({ username: userAttr.username, "tbk.exito": true, equipos: { $elemMatch: { serial: foundEquipo.serial, activated: false } } }).exec()
-        if (!pagosPendientes.length) return res.status(403).send({ activated: false, message: 'No tiene autorizado activar el equipo',equipo: null })
+        if (!(activo && foundEquipo.active)) return { status: 409, activated: false, message: 'Equipo no disponible o fuera de linea', equipo: { ...foundEquipo['_doc'], active: false } }//res.status(409).send({activated: false, message: 'Equipo no disponible o fuera de linea', equipo :  {...foundEquipo['_doc'], active:false}})
+        const pagosPendientes = await pago.find({ username, "tbk.exito": true, equipos: { $elemMatch: { serial: foundEquipo.serial, activated: false } } }).exec()
+        if (!pagosPendientes.length) return { status: 403, activated: false, message: 'No tiene autorizado activar el equipo', equipo: null }//res.status(403).send({ activated: false, message: 'No tiene autorizado activar el equipo',equipo: null })
         const activacion = {} // call activation service
         //TODO: Registro de acciones
         for (const pagoPend of pagosPendientes) {
             const index = pagoPend.equipos.findIndex(eq => eq.serial == serial)
             if (index >= 0) {
                 const update = {};
-                update [`equipos.${index}.activated`] = true;
-                update [`equipos.${index}.date`] = Date.now();
-                await pago.updateOne({ _id: oId(pagoPend['_id']) }, { $set : {  ... update }}).exec();
+                update[`equipos.${index}.activated`] = true;
+                update[`equipos.${index}.date`] = Date.now();
+                await pago.updateOne({ _id: oId(pagoPend['_id']) }, { $set: { ...update } }).exec();
                 break
             }
         }
-        return res.status(200).send({ activated: true, equipo :  {...foundEquipo['_doc'], active:false}});
+        return { status: 200, activated: true, equipo: { ...foundEquipo['_doc'] } }//res.status(200).send({ activated: true, equipo :  {...foundEquipo['_doc'], active:false}});
+    } catch (error) {
+        // TODO log activation error
+        return { status: 500, activated: false, equipo: null };
+    }
+}
+
+const activateList = async (serials, username) => {
+    const eqs = []
+    for (const serial of serials) {
+        const eq = await activationProcess(serial, username);
+        eqs.push(eq)
+    }
+    const { activated, error } = eqs.reduce((status, eq, i) => ({ activated: eq.activated || status.activated, error: eq.status != 200 || status.error }), { activated: false, error: false });
+    return { activated, error, equipos: eqs }
+}
+
+const activar = async (req, res, next) => {
+    try {
+        const { serials } = req.validInputs.body;
+        const userAttr = req.userInfo;
+        const { activated, error, equipos } = await activateList(serials, userAttr.username)
+        return res.status(200).send({ activated, error, equipos });
     } catch (error) {
         const err = {
             errId: 500,
@@ -124,4 +144,4 @@ const activar = async (req, res, next) => {
 
 
 
-module.exports = { info, activar }
+module.exports = { info, activar, activationProcess, activateList }

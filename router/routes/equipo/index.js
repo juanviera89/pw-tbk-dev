@@ -10,8 +10,9 @@ const userInfo = rfr('/components/user/userMiddleware').userInfo
 const methods = {
     PUT: {
         body: {
-            serial: {
-                type: 'string',
+            serials: {
+                type: 'array',
+                items : 'string',
                 required: true
             }
         }

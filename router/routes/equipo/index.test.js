@@ -246,7 +246,7 @@ describe('/equipo', function () {
                     response.body.should.be.a('object');
                     const body = response.body
                     body.message.should.be.a('string')
-                    should.equal(body.equipo,null)
+                    should.equal(body.equipo, null)
                     done();
                 });
         })
@@ -259,7 +259,7 @@ describe('/equipo', function () {
                     response.body.should.be.a('object');
                     const body = response.body
                     body.message.should.be.a('string')
-                    should.equal(body.equipo,null)
+                    should.equal(body.equipo, null)
                     done();
                 });
         })
@@ -371,7 +371,7 @@ describe('/equipo', function () {
         it('Should return a json object with equipment started flag true', function (done) {
             chai.request(app.getApp('main'))
                 .put('/equipo').set('userkey', 'juanTokenMFA').set('devkey', 'kowndevicemfa003').send({
-                    serial: 'TST0005'
+                    serials: ['TST0005']
                 })
                 .end((err, res) => {
                     const response = err ? err.response : res;
@@ -387,7 +387,7 @@ describe('/equipo', function () {
         it('Should return a json object with equipment started flag off for offline reason', function (done) {
             chai.request(app.getApp('main'))
                 .put('/equipo').set('userkey', 'juanTokenMFA').set('devkey', 'kowndevicemfa003').send({
-                    serial: 'TST0003'
+                    serials: ['TST0003']
                 })
                 .end((err, res) => {
                     const response = err ? err.response : res;
@@ -404,14 +404,14 @@ describe('/equipo', function () {
         it('Should return a json object with equipments started flags off for reason unauthorized', function (done) {
             chai.request(app.getApp('main'))
                 .put('/equipo').set('userkey', 'juanTokenMFA').set('devkey', 'kowndevicemfa003').send({
-                    serial: 'TST0001'
+                    serials: ['TST0001']
                 })
                 .end((err, res) => {
                     const response = err ? err.response : res;
                     response.should.have.status(403);
                     response.body.should.be.a('object');
                     const body = response.body
-                    should.equal(body.equipo,null)
+                    should.equal(body.equipo, null)
                     body.message.should.be.a('string')
                     body.activated.should.be.a('boolean')
                     body.activated.should.equal(false)
@@ -421,7 +421,7 @@ describe('/equipo', function () {
         it('Should return a 404 status with equipment not found error code', function (done) {
             chai.request(app.getApp('main'))
                 .put('/equipo').set('userkey', 'juanTokenMFA').set('devkey', 'kowndevicemfa003').send({
-                    serial: 'TST9001'
+                    serials: ['TST9001']
                 })
                 .end((err, res) => {
                     const response = err ? err.response : res;
@@ -429,12 +429,13 @@ describe('/equipo', function () {
                     response.body.should.be.a('object');
                     const body = response.body
                     body.message.should.be.a('string')
-                    should.equal(body.equipo,null)
+                    should.equal(body.equipo, null)
                     body.activated.should.be.a('boolean')
                     body.activated.should.equal(false)
                     done();
                 });
         })
+        //TODO: test multiple activation
         after(async function () {
             await pago.deleteMany({ oc: 'pagotest' }).exec();
             await equipo.deleteMany({

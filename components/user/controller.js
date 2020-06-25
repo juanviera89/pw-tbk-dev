@@ -71,7 +71,7 @@ const register = async (req, res, next) => {
         if(Users.length) return res.status(409).send({ message : 'Can not create specified user', code : '409' })
         const cognitoResult = await cognito.adminCreateUser({
             UserPoolId: config.get('cognito.IdentityPoolId'),
-            Username: `${Date.now().toString(16)}${name}${lastname}`,
+            Username: `${Date.now().toString(16)}${name.replace(/ /g,'')}${lastname.replace(/ /g,'')}`,
             UserAttributes: [
                 { Name: 'phone', Value: phone || `` },
                 { Name: 'name', Value: name },
