@@ -369,7 +369,7 @@ const ocRegister = async (req, res, next) => { // Inicia registro oneClick
       //TODO: log duplicaed oneclick registration intent
       return res.status(200).send(oneclickDuplicated.replace('#message', 'Usted ya posee tarjeta registrada en OneClick'));
     }
-    const token = await oneclickTransaction.initInscription(userAttr.username, userAttr.email, config.get('transbank.oneclick.config.final'))
+    const token = await oneclickTransaction.initInscription(userAttr.username, userAttr.email, config.get('transbank.oneclick.finalUrl'))
     const oc = new oneclick({
       username: userAttr.username,
       token: token.token

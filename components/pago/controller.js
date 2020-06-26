@@ -11,6 +11,7 @@ const config = require("config");
 const errors = require("../../utils/errordictionary.json");
 const oId = require("mongoose").Types.ObjectId;
 const utils = rfr("utils");
+const oneclick = rfr("db/models/oneclick.js");
 
 const list = async (req, res, next) => {
     try {
