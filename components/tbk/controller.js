@@ -259,7 +259,7 @@ const initWP = async (req, res, next) => { //Inicia pago WebPay
     err.error = error;
     res.status(500).send(fatalError.replace('#message', 'Ocurrió un error inesperado'));
     await logerror(err)
-    return 
+    return
     //next(err);
   }
 };
@@ -270,7 +270,7 @@ const resultWP = async (req, res, next) => { //Resuelve pago webpay
     //const userAttr = req.userInfo;
     const token = req.body.token_ws;
     const buyOrder = await pago.findOne({ "tbk.init.token": token }).exec()
-    
+
     console.log('=================resultWP===================');
     console.log(token, req.body.TBK_TOKEN);
     console.log('====================================');
@@ -313,7 +313,7 @@ const resultWP = async (req, res, next) => { //Resuelve pago webpay
     err.error = error;
     res.status(500).send(fatalError.replace('#message', 'Ocurrió un error inesperado'));
     await logerror(err)
-    return 
+    return
     //next(err);
   }
 };
@@ -326,7 +326,10 @@ const finishtWP = async (req, res, next) => { //finaliza pago webpay
     console.log('====================================');
     if (typeof req.body.TBK_TOKEN !== "undefined" || !token) {
       //TODO log abortion action
-      return res.status(400).send(abortPaymentProcess.replace('#message', 'Ha abortado la operación, deberá iniciar de nuevo para habilitar los equipos'))
+      res.status(400).send(abortPaymentProcess.replace('#message', 'Ha abortado la operación, deberá iniciar de nuevo para habilitar los equipos'))
+
+      await pago.updateOne({ "tbk.init.token": req.body.TBK_TOKEN }, { $set: { "tbk.finish": { token : req.body.TBK_TOKEN, failed : true } } })
+      return
     }
     const buyOrder = await pago.findOne({ "tbk.init.token": token, "tbk.exito": true }).exec();
     if (!buyOrder) {
@@ -338,6 +341,7 @@ const finishtWP = async (req, res, next) => { //finaliza pago webpay
     } catch (error) {
       //TODO: log activation error
     }
+    await pago.updateOne({ "tbk.init.token": token }, { $set: { "tbk.finish": { token } } })
     return res.status(200).send(paymentProcessDone.replace('#message', 'Pago realizado con éxito, el o los equipos se habilitarán en breve'));
   } catch (error) {
     const err = {
@@ -351,7 +355,7 @@ const finishtWP = async (req, res, next) => { //finaliza pago webpay
     err.error = error;
     res.status(500).send(fatalError.replace('#message', 'Ocurrió un error inesperado'));
     await logerror(err)
-    return 
+    return
     //next(err);
   }
 };
@@ -384,7 +388,7 @@ const ocRegister = async (req, res, next) => { // Inicia registro oneClick
     err.error = error;
     res.status(500).send(fatalError.replace('#message', 'Ocurrió un error inesperado'));
     await logerror(err)
-    return 
+    return
     //next(err);
   }
 };
@@ -424,7 +428,7 @@ const ocRegisterConfirmation = async (req, res, next) => { //Resuelve registro o
     err.error = error;
     res.status(500).send(fatalError.replace('#message', 'Ocurrió un error inesperado'));
     await logerror(err)
-    return 
+    return
     //next(err);
   }
 };
@@ -472,7 +476,7 @@ const ocAuthorize = async (req, res, next) => { // Realiza pago OneClick
     err.error = error;
     res.status(500).send(fatalError.replace('#message', 'Ocurrió un error inesperado'));
     await logerror(err)
-    return 
+    return
     //next(err);
   }
 };
