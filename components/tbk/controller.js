@@ -329,13 +329,13 @@ const finishtWP = async (req, res, next) => { //finaliza pago webpay
     console.log('=================finishtWP===================');
     console.log(token, req.body.TBK_TOKEN);
     console.log('====================================');
-    /* if (typeof req.body.TBK_TOKEN !== "undefined" || !token) {
+    if (typeof req.body.TBK_TOKEN !== "undefined" || !token) {
       //TODO log abortion action
       res.status(400).send(abortPaymentProcess.replace('#message', 'Ha abortado la operación, deberá iniciar de nuevo para habilitar los equipos'))
 
       await pago.updateOne({ "tbk.init.token": req.body.TBK_TOKEN }, { $set: { "tbk.finish": { token : req.body.TBK_TOKEN, failed : true } } })
       return
-    } */
+    }
     const buyOrder = await pago.findOne({ "tbk.init.token": token, "tbk.exito": true }).exec();
     if (!buyOrder) {
       //TODO log payment finished on no token register found
