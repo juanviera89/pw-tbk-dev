@@ -257,8 +257,9 @@ const initWP = async (req, res, next) => { //Inicia pago WebPay
       origin: JSON.stringify(error)
     };
     err.error = error;
-    logerror(err)
-    return res.status(500).send(fatalError.replace('#message', 'Ocurrió un error inesperado'));
+    res.status(500).send(fatalError.replace('#message', 'Ocurrió un error inesperado'));
+    await logerror(err)
+    return 
     //next(err);
   }
 };
@@ -269,6 +270,10 @@ const resultWP = async (req, res, next) => { //Resuelve pago webpay
     //const userAttr = req.userInfo;
     const token = req.body.token_ws;
     const buyOrder = await pago.findOne({ "tbk.init.token": token }).exec()
+    
+    console.log('=================resultWP===================');
+    console.log(token, req.body.TBK_TOKEN);
+    console.log('====================================');
     const response = await webpayResult(token);
     const oc = response.buyOrder;
     const sid = response.sessionId;
@@ -306,8 +311,9 @@ const resultWP = async (req, res, next) => { //Resuelve pago webpay
       origin: JSON.stringify(error)
     };
     err.error = error;
-    logerror(err)
-    return res.status(500).send(fatalError.replace('#message', 'Ocurrió un error inesperado'));
+    res.status(500).send(fatalError.replace('#message', 'Ocurrió un error inesperado'));
+    await logerror(err)
+    return 
     //next(err);
   }
 };
@@ -315,17 +321,20 @@ const resultWP = async (req, res, next) => { //Resuelve pago webpay
 const finishtWP = async (req, res, next) => { //finaliza pago webpay
   try {
     const token = req.body.token_ws;
+    console.log('=================finishtWP===================');
+    console.log(token, req.body.TBK_TOKEN);
+    console.log('====================================');
     if (typeof req.body.TBK_TOKEN !== "undefined" || !token) {
       //TODO log abortion action
       return res.status(400).send(abortPaymentProcess.replace('#message', 'Ha abortado la operación, deberá iniciar de nuevo para habilitar los equipos'))
     }
-    const buyOrder = await pago.findOne({ "tbk.token": token, "tbk.exito": true }).exec();
+    const buyOrder = await pago.findOne({ "tbk.init.token": token, "tbk.exito": true }).exec();
     if (!buyOrder) {
       //TODO log payment finished on no token register found
       return res.status(400).send(abortPaymentProcess.replace('#message', 'Error con la transacción. Por favor revise su historial de pagos para validar que fue efectuado. Si existe algun problema con su pago, contacte al servicio de soporte')) //Migth be still able to activate eqs
     }
     try {
-      activateList(buyOrder.equipos.map(eq => eq.serial), buyOrder.username);
+      await activateList(buyOrder.equipos.map(eq => eq.serial), buyOrder.username);
     } catch (error) {
       //TODO: log activation error
     }
@@ -340,8 +349,9 @@ const finishtWP = async (req, res, next) => { //finaliza pago webpay
       origin: JSON.stringify(error)
     };
     err.error = error;
-    logerror(err)
-    return res.status(500).send(fatalError.replace('#message', 'Ocurrió un error inesperado'));
+    res.status(500).send(fatalError.replace('#message', 'Ocurrió un error inesperado'));
+    await logerror(err)
+    return 
     //next(err);
   }
 };
@@ -372,8 +382,9 @@ const ocRegister = async (req, res, next) => { // Inicia registro oneClick
       origin: JSON.stringify(error)
     };
     err.error = error;
-    logerror(err)
-    return res.status(500).send(fatalError.replace('#message', 'Ocurrió un error inesperado'));
+    res.status(500).send(fatalError.replace('#message', 'Ocurrió un error inesperado'));
+    await logerror(err)
+    return 
     //next(err);
   }
 };
@@ -411,8 +422,9 @@ const ocRegisterConfirmation = async (req, res, next) => { //Resuelve registro o
       origin: JSON.stringify(error)
     };
     err.error = error;
-    logerror(err)
-    return res.status(500).send(fatalError.replace('#message', 'Ocurrió un error inesperado'));
+    res.status(500).send(fatalError.replace('#message', 'Ocurrió un error inesperado'));
+    await logerror(err)
+    return 
     //next(err);
   }
 };
@@ -443,7 +455,7 @@ const ocAuthorize = async (req, res, next) => { // Realiza pago OneClick
     await pago.updateOne({ oc, username: buyOrder.username }, { $set: { "tbk.result": response, "tbk.exito": false } }).exec()
 
     try {
-      activateList(buyOrder.equipos.map(eq => eq.serial), buyOrder.username);
+      await activateList(buyOrder.equipos.map(eq => eq.serial), buyOrder.username);
     } catch (error) {
       //TODO: log activation error
     }
@@ -458,8 +470,9 @@ const ocAuthorize = async (req, res, next) => { // Realiza pago OneClick
       origin: JSON.stringify(error)
     };
     err.error = error;
-    logerror(err)
-    return res.status(500).send(fatalError.replace('#message', 'Ocurrió un error inesperado'));
+    res.status(500).send(fatalError.replace('#message', 'Ocurrió un error inesperado'));
+    await logerror(err)
+    return 
     //next(err);
   }
 };
