@@ -40,7 +40,7 @@ const methods = {
     }
 };
 
-router.get("/init", validate(methods.register.GET), userInfo, ocRegister);
+router.get("/register", validate(methods.register.GET), userInfo, ocRegister);
 router.post("/result", validate(methods.result.POST), ocRegisterConfirmation);
-router.post("/finish", validate(methods.auth.GET), ocAuthorize);
+router.post("/auth", validate(methods.auth.GET), ocAuthorize);
 module.exports = { methods, routes: router };
