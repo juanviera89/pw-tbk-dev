@@ -39,6 +39,7 @@ const info = async (req, res, next) => {
         if (foundSucursal.techPhone && foundSucursal.techPhone.trim().length) techPhone = foundSucursal.techPhone;
         if (!techPhone && foundConcesionario && foundConcesionario.techPhone && foundConcesionario.techPhone.trim().length) techPhone = foundConcesionario.techPhone;
         if (!techPhone) techPhone = config.get('techPhone') //TODO Configurar
+        //TODO: Validar si el equipo fue activado recientemente, en cuyo caso se debiese notificar como no disponible
         const pagosPendientes = await pago.find({ username: userAttr.username, "tbk.exito": true, equipos: { $elemMatch: { serial: foundEquipo.serial, activated: false } } }, { _id: 0 }).exec()
         // TODO: report if there ara more than one payment pending
         let foundDescuentos = await descuento.find({ sucursales: foundSucursal.code, iDate: { $lt: Date.now() }, eDate: { $gt: Date.now() }, active: true }, { _id: 0 }).exec()

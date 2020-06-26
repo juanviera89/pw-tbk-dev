@@ -298,6 +298,11 @@ const resultWP = async (req, res, next) => { //Resuelve pago webpay
       return
     }
     //TODO: log user payment
+    try {
+      activateList(buyOrder.equipos.map(eq => eq.serial), buyOrder.username);
+    } catch (error) {
+      //TODO: log activation error
+    }
     await pago.updateOne({ oc, username: buyOrder.username }, { $set: { "tbk.result": response, "tbk.exito": true, "tbk.token": token } })
     const body = finalPayment.replace('#redirectUrl', response.urlRedirection).replace('#token', token);
     return res.status(200).send(body);
@@ -324,24 +329,20 @@ const finishtWP = async (req, res, next) => { //finaliza pago webpay
     console.log('=================finishtWP===================');
     console.log(token, req.body.TBK_TOKEN);
     console.log('====================================');
-    if (typeof req.body.TBK_TOKEN !== "undefined" || !token) {
+    /* if (typeof req.body.TBK_TOKEN !== "undefined" || !token) {
       //TODO log abortion action
       res.status(400).send(abortPaymentProcess.replace('#message', 'Ha abortado la operación, deberá iniciar de nuevo para habilitar los equipos'))
 
       await pago.updateOne({ "tbk.init.token": req.body.TBK_TOKEN }, { $set: { "tbk.finish": { token : req.body.TBK_TOKEN, failed : true } } })
       return
-    }
+    } */
     const buyOrder = await pago.findOne({ "tbk.init.token": token, "tbk.exito": true }).exec();
     if (!buyOrder) {
       //TODO log payment finished on no token register found
       return res.status(400).send(abortPaymentProcess.replace('#message', 'Error con la transacción. Por favor revise su historial de pagos para validar que fue efectuado. Si existe algun problema con su pago, contacte al servicio de soporte')) //Migth be still able to activate eqs
+      //TODO: en front, al terminar, solicitar activacion en caso de error, de manera que el usuario no este obligado a solicitar la activacion a menos q efectivamente el equipo no haya sido activado
     }
-    try {
-      await activateList(buyOrder.equipos.map(eq => eq.serial), buyOrder.username);
-    } catch (error) {
-      //TODO: log activation error
-    }
-    await pago.updateOne({ "tbk.init.token": token }, { $set: { "tbk.finish": { token } } })
+    await pago.updateOne({ "tbk.init.token": token }, { $set: { "tbk.finish": { token } } }) 
     return res.status(200).send(paymentProcessDone.replace('#message', 'Pago realizado con éxito, el o los equipos se habilitarán en breve'));
   } catch (error) {
     const err = {
