@@ -243,6 +243,7 @@ const initWP = async (req, res, next) => { //Inicia pago WebPay
     const buyOrder = await pago.findOne({ oc, username: userAttr.username, type: 'webpay' }).exec()
     if (!buyOrder) return res.status(404).send(paymentNotFound.replace('#message', 'No existe pago asociado'))
     if (buyOrder.tbk && buyOrder.tbk.init) return res.status(400).send(badPaymentInit.replace('#message', 'No existe pago asociado'));
+    if (buyOrder.tbk && buyOrder.tbk.exito) return res.status(400).send(badPaymentInit.replace('#message', 'Pago ya realizado'));
     const token = await webpayToken(buyOrder.oc, buyOrder.sessionId, buyOrder.amount);
     await pago.updateOne({ oc, username: userAttr.username }, { $set: { "tbk.init": token } }).exec();
     const body = paymentInit.replace('#tokenUrl', token.url).replace('#tokenUrl', token.token);
@@ -443,13 +444,14 @@ const ocAuthorize = async (req, res, next) => { // Realiza pago OneClick
     const buyOrder = await pago.findOne({ oc, username: userAttr.username, type: 'oneclick' }).exec()
     if (!buyOrder) return res.status(404).send(oneclickError.replace('#error', 'error').replace('#message', 'No se pudo procesar la compra'))//{ paid: false, message: 'Buy order not found' })
     if (buyOrder.tbk && buyOrder.tbk.init) return res.status(400).send(oneclickError.replace('#error', 'error').replace('#message', 'No se puede procesar la compra'))//{ paid: false, message: 'Unable to process buy order' });
+    if (buyOrder.tbk && buyOrder.tbk.exito) return res.status(400).send(oneclickError.replace('#error', 'error').replace('#message', 'Pago ya realizado'));
     const userOneclick = await oneclick.findOne({ username: userAttr.username, registered: true }).exec();
     if (!userOneclick) return res.status(400).send(oneclickError.replace('#error', 'error').replace('#message', 'Usuario sin registros en OneClick'))//{ paid: false, message: 'User not authorized', needRegistration: true })
     if ((userOneclick.inscrptionResult && (!userOneclick.inscrptionResult.tbkUser)) || !userOneclick.inscrptionResult) {
       await pago.updateOne({ '_id': oId(userOneclick) }, { $set: { registered: false } }).exec()
       return res.status(500).send(oneclickError.replace('#error', 'error').replace('#message', 'Error en el registro de oneclick, no se puede autorizar la compra'))//{ paid: false, message: 'Error on Oneclick registration' })
     }
-    const oneClickOC = (`${parseInt(buyOrder.oc.replace('pwoc',''),24)}`).substr(0,9)
+    const oneClickOC = (`${parseInt(buyOrder.oc.replace('pwoc',''),24)  - new Date('2020-01-01')}`).substr(0,9)
     const response = await oneclickTransaction.authorize(oneClickOC, userOneclick.inscrptionResult.tbkUser, userAttr.username, buyOrder.amount); //TODO Debug response, properties must be in root
     if (response.responseCode != 0) {
       //TODO log process failure
