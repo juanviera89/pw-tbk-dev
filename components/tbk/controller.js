@@ -449,15 +449,16 @@ const ocAuthorize = async (req, res, next) => { // Realiza pago OneClick
       await pago.updateOne({ '_id': oId(userOneclick) }, { $set: { registered: false } }).exec()
       return res.status(500).send(oneclickError.replace('#error', 'error').replace('#message', 'Error en el registro de oneclick, no se puede autorizar la compra'))//{ paid: false, message: 'Error on Oneclick registration' })
     }
-    const response = await oneclickTransaction.authorize(buyOrder, userOneclick.inscrptionResult.tbkUser, userAttr.username, buyOrder.amount); //TODO Debug response, properties must be in root
+    const oneClickOC = (`${parseInt(buyOrder.oc.replace('pwoc',''),24)}`).substr(0,9)
+    const response = await oneclickTransaction.authorize(oneClickOC, userOneclick.inscrptionResult.tbkUser, userAttr.username, buyOrder.amount); //TODO Debug response, properties must be in root
     if (response.responseCode != 0) {
       //TODO log process failure
       res.status(400).send(oneclickError.replace('#error', response.responseCode).replace('#message', 'Ha ocurrido un error'))//{ paid: false, message: 'Error on Oneclick registration', responseCode: response.responseCode })
       //TODO usar diccionario en front para emitir error a usuario https://www.transbankdevelopers.cl/referencia/webpay#autorizar-un-pago-con-oneclick
-      await pago.updateOne({ oc, username: buyOrder.username }, { $set: { "tbk.result": response, "tbk.exito": false } }).exec()
+      await pago.updateOne({ oc, username: buyOrder.username }, { $set: { "tbk.result": {...response, oneClickOC}, "tbk.exito": false } }).exec()
       return
     }
-    await pago.updateOne({ oc, username: buyOrder.username }, { $set: { "tbk.result": response, "tbk.exito": false } }).exec()
+    await pago.updateOne({ oc, username: buyOrder.username }, { $set: { "tbk.result": {...response, oneClickOC}, "tbk.exito": false } }).exec()
 
     try {
       await activateList(buyOrder.equipos.map(eq => eq.serial), buyOrder.username);

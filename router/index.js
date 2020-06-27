@@ -16,7 +16,7 @@ const setDescriptionExporter = (fx) => {
   }
   return false
 }
-
+// TODO: considerar rutas definidas internamente a traves de path en router. 
 // TODO: Set pre and post midlewares
 const initRoutes = (app, dir = __dirname, express = require("express"), notFound = notFoundDefault) => {
   const routes = routesAssembler(express, path.join(dir, 'routes'), notFound);
