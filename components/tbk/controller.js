@@ -233,6 +233,17 @@ const oneclickError = `<!DOCTYPE html>
 
 </body>
 </html>`
+const transbankError = `<!DOCTYPE html>
+<html>
+<body>
+<h1>Error en servicio Transbank</h1>
+<h3>No pudimos procesar la transaccion, le pedimos disculpas por los inconvenientes </h3>
+
+<div id="action" hidden>#error</div>
+<div id="message" hidden>#message</div>
+
+</body>
+</html>`
 
 
 
@@ -244,7 +255,14 @@ const initWP = async (req, res, next) => { //Inicia pago WebPay
     if (!buyOrder) return res.status(404).send(paymentNotFound.replace('#message', 'No existe pago asociado'))
     if (buyOrder.tbk && buyOrder.tbk.init) return res.status(400).send(badPaymentInit.replace('#message', 'No existe pago asociado'));
     if (buyOrder.tbk && buyOrder.tbk.exito) return res.status(400).send(badPaymentInit.replace('#message', 'Pago ya realizado'));
-    const token = await webpayToken(buyOrder.oc, buyOrder.sessionId, buyOrder.amount);
+    let token 
+    try {
+      token = await webpayToken(buyOrder.oc, buyOrder.sessionId, buyOrder.amount);
+    } catch (error) {
+      // TODO: log transaction error
+      await pago.updateOne({ oc, username: userAttr.username }, { $set: { "tbk.init": {error : {code : error.code, message : error.message, stack : error.stack}} } }).exec();
+      return res.status(500).send(transbankError.replace('#error', 'error').replace('#message', 'Ocurrio un error con el servicio de Transbank, intente de nuevo mas tarde'));
+    }
     await pago.updateOne({ oc, username: userAttr.username }, { $set: { "tbk.init": token } }).exec();
     const body = paymentInit.replace('#tokenUrl', token.url).replace('#tokenUrl', token.token);
     return res.status(200).send(body);
@@ -273,7 +291,7 @@ const resultWP = async (req, res, next) => { //Resuelve pago webpay
     const buyOrder = await pago.findOne({ "tbk.init.token": token }).exec()
 
     console.log('=================resultWP===================');
-    console.log(token, req.body.TBK_TOKEN);
+    console.log(token, req.body.TBK_TOKEN, req.validInputs);
     console.log('====================================');
     const response = await webpayResult(token);
     const oc = response.buyOrder;
@@ -328,7 +346,7 @@ const finishtWP = async (req, res, next) => { //finaliza pago webpay
   try {
     const token = req.body.token_ws;
     console.log('=================finishtWP===================');
-    console.log(token, req.body.TBK_TOKEN);
+    console.log(token, req.body.TBK_TOKEN, req.validInputs);
     console.log('====================================');
     if (typeof req.body.TBK_TOKEN !== "undefined" || !token) {
       //TODO log abortion action
@@ -402,7 +420,7 @@ const ocRegisterConfirmation = async (req, res, next) => { //Resuelve registro o
     const token = req.body.TBK_TOKEN;
     const response = await oneclickTransaction.finishInscription(token); //TODO Debug response, properties must be in root
     console.log('===================ocRegisterConfirmation=================');
-    console.log(response);
+    console.log(response, req.validInputs);
     console.log('====================================');
     if (response.responseCode != 0) {
       //TODO log process failure
@@ -452,7 +470,14 @@ const ocAuthorize = async (req, res, next) => { // Realiza pago OneClick
       return res.status(500).send(oneclickError.replace('#error', 'error').replace('#message', 'Error en el registro de oneclick, no se puede autorizar la compra'))//{ paid: false, message: 'Error on Oneclick registration' })
     }
     const oneClickOC = (`${parseInt(buyOrder.oc.replace('pwoc',''),24)  - new Date('2020-01-01')}`).substr(0,9)
-    const response = await oneclickTransaction.authorize(oneClickOC, userOneclick.inscrptionResult.tbkUser, userAttr.username, buyOrder.amount); //TODO Debug response, properties must be in root
+    let response
+    try {
+      response = await oneclickTransaction.authorize(oneClickOC, userOneclick.inscrptionResult.tbkUser, userAttr.username, buyOrder.amount); //TODO Debug response, properties must be in root
+    } catch (error) {
+      // LOG transaction error
+      await pago.updateOne({ oc, username: userAttr.username }, { $set: { "tbk.init": {error : {code : error.code, message : error.message, stack : error.stack}} } }).exec();
+      return res.status(500).send(transbankError.replace('#error', 'error').replace('#message', 'Ocurrio un error con el servicio de Transbank, intente de nuevo mas tarde'));
+    }
     if (response.responseCode != 0) {
       //TODO log process failure
       res.status(400).send(oneclickError.replace('#error', response.responseCode).replace('#message', 'Ha ocurrido un error'))//{ paid: false, message: 'Error on Oneclick registration', responseCode: response.responseCode })
