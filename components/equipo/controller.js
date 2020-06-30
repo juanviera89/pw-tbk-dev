@@ -92,7 +92,9 @@ const activationProcess = async (serial, username) => {
         hace2min.setMinutes(hace2min.getMinutes() - 2);
         const activo = new Date(foundEquipo.ultimaVez.fecha) > hace2min;
         if (!(activo && foundEquipo.active)) return { status: 409, activated: false, message: 'Equipo no disponible o fuera de linea', equipo: { ...foundEquipo['_doc'], active: false } }//res.status(409).send({activated: false, message: 'Equipo no disponible o fuera de linea', equipo :  {...foundEquipo['_doc'], active:false}})
-        const pagosPendientes = await pago.find({ username, "tbk.exito": true, equipos: { $elemMatch: { serial: foundEquipo.serial, activated: false } } }).exec()
+        const now24h = new Date()
+        now24h.setHours(now24h.getHours() - 24);
+        const pagosPendientes = await pago.find({ username, "tbk.exito": true, equipos: { $elemMatch: { serial: foundEquipo.serial, activated: false } } , createdAt : { $gt : now24h } }).exec()
         if (!pagosPendientes.length) return { status: 403, activated: false, message: 'No tiene autorizado activar el equipo', equipo: null }//res.status(403).send({ activated: false, message: 'No tiene autorizado activar el equipo',equipo: null })
         const activacion = {} // call activation service
         //TODO: Registro de acciones
@@ -106,7 +108,7 @@ const activationProcess = async (serial, username) => {
                 break
             }
         }
-        return { status: 200, activated: true, equipo: { ...foundEquipo['_doc'] } }//res.status(200).send({ activated: true, equipo :  {...foundEquipo['_doc'], active:false}});
+        return { status: 200, activated: true, equipo: { ...foundEquipo['_doc'], activacion } }//res.status(200).send({ activated: true, equipo :  {...foundEquipo['_doc'], active:false}});
     } catch (error) {
         // TODO log activation error
         return { status: 500, activated: false, equipo: null };
