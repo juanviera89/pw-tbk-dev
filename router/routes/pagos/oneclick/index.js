@@ -5,6 +5,8 @@ const validate = rfr("/components/validator/middleware").wrapper;
 const ocRegister = rfr("/components/tbk/controller").ocRegister;
 const ocRegisterConfirmation = rfr("/components/tbk/controller").ocRegisterConfirmation;
 const ocAuthorize = rfr("/components/tbk/controller").ocAuthorize;
+const ocUnregister = rfr("/components/tbk/controller").ocUnregister;
+const ocList = rfr("/components/tbk/controller").ocList;
 const userInfo = rfr("/components/user/userMiddleware").userInfo;
 
 const methods = {
@@ -12,6 +14,16 @@ const methods = {
         GET: {
             query: {
                 oc: {
+                    type: "string",
+                    required: false
+                }
+            }
+        }
+    },
+    unregister: {
+        GET: {
+            query: {
+                tk: {
                     type: "string",
                     required: true
                 }
@@ -37,10 +49,14 @@ const methods = {
                 }
             }
         }
+    },
+    GET: {
     }
 };
 
 router.get("/register", validate(methods.register.GET), userInfo, ocRegister);
+router.get("/unregister", validate(methods.register.GET), userInfo, ocUnregister);
 router.post("/result", validate(methods.result.POST), ocRegisterConfirmation);
 router.get("/auth", validate(methods.auth.GET),userInfo, ocAuthorize);
+router.get("/", validate(methods.GET),userInfo, ocList);
 module.exports = { methods, routes: router };

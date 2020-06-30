@@ -37,7 +37,7 @@ const list = async (req, res, next) => {
         const err = {
             errId: 500,
             transactionId: req.transactionId,
-            service: 'equipo info',
+            service: 'pago list',
             type: 'error',
             message: 'Internal server error', // TODO: Use dictionary
             origin: JSON.stringify(error),
@@ -107,7 +107,7 @@ const startPayment = async (req, res, next) => { //Solicita pago
       const err = {
         errId: 500,
         transactionId: req.transactionId,
-        service: 'equipo info',
+        service: 'startPayment',
         type: 'error',
         message: 'Internal server error', // TODO: Use dictionary
         origin: JSON.stringify(error),

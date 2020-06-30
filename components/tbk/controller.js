@@ -270,7 +270,7 @@ const initWP = async (req, res, next) => { //Inicia pago WebPay
     const err = {
       errId: 500,
       transactionId: req.transactionId,
-      service: "modifyInfo",
+      service: "initWP",
       type: "error",
       message: "Internal server error", // TODO: Use dictionary
       origin: JSON.stringify(error)
@@ -329,7 +329,7 @@ const resultWP = async (req, res, next) => { //Resuelve pago webpay
     const err = {
       errId: 500,
       transactionId: req.transactionId,
-      service: "modifyInfo",
+      service: "resultWP",
       type: "error",
       message: "Internal server error", // TODO: Use dictionary
       origin: JSON.stringify(error)
@@ -367,7 +367,7 @@ const finishtWP = async (req, res, next) => { //finaliza pago webpay
     const err = {
       errId: 500,
       transactionId: req.transactionId,
-      service: "modifyInfo",
+      service: "finishtWP",
       type: "error",
       message: "Internal server error", // TODO: Use dictionary
       origin: JSON.stringify(error)
@@ -383,11 +383,12 @@ const finishtWP = async (req, res, next) => { //finaliza pago webpay
 const ocRegister = async (req, res, next) => { // Inicia registro oneClick
   try {
     const userAttr = req.userInfo;
-    const ocregistration = await oneclick.findOne({ username: userAttr.username, registered: true });
+    //TODO: Permit user to register multiples credit cards
+    /* const ocregistration = await oneclick.findOne({ username: userAttr.username, registered: true });
     if (ocregistration) {
       //TODO: log duplicaed oneclick registration intent
       return res.status(200).send(oneclickDuplicated.replace('#message', 'Usted ya posee tarjeta registrada en OneClick'));
-    }
+    } */
     const token = await oneclickTransaction.initInscription(userAttr.username, userAttr.email, config.get('transbank.oneclick.finalUrl'))
     const oc = new oneclick({
       username: userAttr.username,
@@ -400,7 +401,7 @@ const ocRegister = async (req, res, next) => { // Inicia registro oneClick
     const err = {
       errId: 500,
       transactionId: req.transactionId,
-      service: "modifyInfo",
+      service: "ocRegister",
       type: "error",
       message: "Internal server error", // TODO: Use dictionary
       origin: JSON.stringify(error)
@@ -412,8 +413,6 @@ const ocRegister = async (req, res, next) => { // Inicia registro oneClick
     //next(err);
   }
 };
-
-
 
 const ocRegisterConfirmation = async (req, res, next) => { //Resuelve registro oneclick
   try {
@@ -453,17 +452,67 @@ const ocRegisterConfirmation = async (req, res, next) => { //Resuelve registro o
   }
 };
 
-//TODO Oneclick unregister
+const ocList =  async (req, res, next) => { //Resuelve registro oneclick
+  try {
+    const userAttr = req.userInfo;
+    const ocRegs = await oneclick.find({ username : userAttr.username });
+    return res.status(200).send({ list : ocRegs})
+  } catch (error) {
+    const err = {
+      errId: 500,
+      transactionId: req.transactionId,
+      service: "ocList",
+      type: "error",
+      message: "Internal server error", // TODO: Use dictionary
+      origin: JSON.stringify(error)
+    };
+    err.error = error;
+    res.status(500).send(fatalError.replace('#message', 'Ocurrió un error inesperado'));
+    await logerror(err)
+    return
+    //next(err);
+  }
+};
+
+const ocUnregister  = async (req, res, next) => { // Inicia registro oneClick
+  try {
+    const userAttr = req.userInfo;
+    const { tk } = req.validInputs.query;
+    
+    const ocregistration = await oneclick.findOne({ username: userAttr.username, registered: true, token : tk });
+    if (!ocregistration) {
+      //TODO: log duplicaed oneclick registration intent
+      return res.status(200).send(oneclickFailed.replace('#message', 'No existe el registro especificado'));
+    }
+    const token = await oneclickTransaction.removeUser(ocregistration.token ,userAttr.username)
+    await oneclick.updateOne({ username: userAttr.username, token : ocregistration.token }, {$set : {registered: false }}).exec();
+    return res.status(200).send(oneclickSuccess.replace('#message', 'Registro de metodo de pago eliminado exitosamente'))
+  } catch (error) {
+    const err = {
+      errId: 500,
+      transactionId: req.transactionId,
+      service: "ocUnregister",
+      type: "error",
+      message: "Internal server error", // TODO: Use dictionary
+      origin: JSON.stringify(error)
+    };
+    err.error = error;
+    res.status(500).send(fatalError.replace('#message', 'Ocurrió un error inesperado'));
+    await logerror(err)
+    return
+    //next(err);
+  }
+};
 
 const ocAuthorize = async (req, res, next) => { // Realiza pago OneClick
   try {
-    const { oc } = req.validInputs.query;
+    const { oc, tk } = req.validInputs.query;
     const userAttr = req.userInfo;
     const buyOrder = await pago.findOne({ oc, username: userAttr.username, type: 'oneclick' }).exec()
     if (!buyOrder) return res.status(404).send(oneclickError.replace('#error', 'error').replace('#message', 'No se pudo procesar la compra'))//{ paid: false, message: 'Buy order not found' })
     if (buyOrder.tbk && buyOrder.tbk.init) return res.status(400).send(oneclickError.replace('#error', 'error').replace('#message', 'No se puede procesar la compra'))//{ paid: false, message: 'Unable to process buy order' });
     if (buyOrder.tbk && buyOrder.tbk.exito) return res.status(400).send(oneclickError.replace('#error', 'error').replace('#message', 'Pago ya realizado'));
-    const userOneclick = await oneclick.findOne({ username: userAttr.username, registered: true }).exec();
+    const userOneclick = await oneclick.findOne({ username: userAttr.username, registered: true, token : tk }).exec();
     if (!userOneclick) return res.status(400).send(oneclickError.replace('#error', 'error').replace('#message', 'Usuario sin registros en OneClick'))//{ paid: false, message: 'User not authorized', needRegistration: true })
     if ((userOneclick.inscrptionResult && (!userOneclick.inscrptionResult.tbkUser)) || !userOneclick.inscrptionResult) {
       await pago.updateOne({ '_id': oId(userOneclick) }, { $set: { registered: false } }).exec()
@@ -497,7 +546,7 @@ const ocAuthorize = async (req, res, next) => { // Realiza pago OneClick
     const err = {
       errId: 500,
       transactionId: req.transactionId,
-      service: "modifyInfo",
+      service: "ocAuthorize",
       type: "error",
       message: "Internal server error", // TODO: Use dictionary
       origin: JSON.stringify(error)
@@ -536,5 +585,7 @@ module.exports = {
   finishtWP,
   ocRegister,
   ocRegisterConfirmation,
-  ocAuthorize
+  ocAuthorize,
+  ocUnregister,
+  ocList
 };
