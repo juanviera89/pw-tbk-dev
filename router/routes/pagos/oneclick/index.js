@@ -46,6 +46,10 @@ const methods = {
                 oc: {
                     type: "string",
                     required: true
+                },
+                tk: {
+                    type: "string",
+                    required: true
                 }
             }
         }
