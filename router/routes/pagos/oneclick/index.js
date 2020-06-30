@@ -58,5 +58,5 @@ router.get("/register", validate(methods.register.GET), userInfo, ocRegister);
 router.get("/unregister", validate(methods.register.GET), userInfo, ocUnregister);
 router.post("/result", validate(methods.result.POST), ocRegisterConfirmation);
 router.get("/auth", validate(methods.auth.GET),userInfo, ocAuthorize);
-router.get("/", validate(methods.GET),userInfo, ocList);
+router.get("/",userInfo, ocList);
 module.exports = { methods, routes: router };

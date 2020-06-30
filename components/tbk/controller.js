@@ -455,7 +455,7 @@ const ocRegisterConfirmation = async (req, res, next) => { //Resuelve registro o
 const ocList =  async (req, res, next) => { //Resuelve registro oneclick
   try {
     const userAttr = req.userInfo;
-    const ocRegs = await oneclick.find({ username : userAttr.username });
+    const ocRegs = await oneclick.find({ username : userAttr.username, registered: true });
     return res.status(200).send({ list : ocRegs})
   } catch (error) {
     const err = {

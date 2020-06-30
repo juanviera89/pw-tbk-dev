@@ -1,7 +1,7 @@
 module.exports = {
   env: "development",
   db: {
-    uri: "mongodb+srv://pwdevelopment-5gy4a.mongodb.net/payw",
+    uri: "mongodb+srv://pwMaster:R0Xtt2CsgqM3azbqR1kH@pwdevelopment-5gy4a.mongodb.net/payw",
     options: {
       bufferCommands: false,
       autoIndex: false,
